@@ -6,6 +6,9 @@ install:
 	@go install
 	@echo "Finished installed."
 
+build:
+	@go build -o bin/main main.go
+
 up:
 	@go run cmd/migrate/main.go up
 
