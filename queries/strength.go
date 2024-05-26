@@ -36,24 +36,14 @@ func (ms MaxStrength) Execute(input MaxStrength) (maxStrengthData []MaxStrengthD
 	msData := make([]MaxStrengthData, 0)
 
 	query := `
-		SELECT id,
-				name,
-				ST_AREA(geom) AS area,
-				strength::float AS strength  
-		FROM (SELECT id,
-					  polygon ->> 'name' AS name,
-					  polygon ->> 'strength' AS strength,
-					  ST_MakePolygon(ST_AddPoint(line, ST_STARTPOINT(line))) AS geom
-			  FROM (SELECT id,
-							polygon,
-							ST_MakeLine(array_agg(ST_SetSRID(ST_MakePoint((v ->> 'lon'):: FLOAT, (v ->> 'lat'):: FLOAT),
-															4326))) AS line
-					FROM "Message",
-						  jsonb_array_elements(polygons) AS polygon, jsonb_array_elements(polygon -> 'polygon') WITH ORDINALITY arr(v, idx)
-					GROUP BY id, POLYGON) AS line_query) AS subquery
-		WHERE ST_CONTAINS(geom, ST_SetSRID(ST_MakePoint(?, ?), 4326))
-		ORDER BY strength DESC
-		LIMIT 1;`
+    SELECT id,
+           name,
+           ST_AREA(geom) AS area,
+           strength AS strength_numeric  -- strength is already a float
+    FROM public."Polygon"
+    WHERE ST_CONTAINS(geom, ST_SetSRID(ST_MakePoint(?, ?), 4326))
+    ORDER BY strength_numeric DESC
+    LIMIT 1;`
 
 	if err := db.Bun.NewRaw(query, input.Lon, input.Lat).Scan(ctx, &msData); err != nil {
 		return nil, err
